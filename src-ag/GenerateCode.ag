@@ -1058,10 +1058,14 @@ SEM CNonterminal
                                                          arg  = SimpleExpr "list"
                                                          rarg = case tp of
                                                                   NT t _ _ -> let t' = maybe t id (deforestedNt t)
-                                                                              in SimpleExpr ("(Prelude.map " ++ (cataname @lhs.prefix t') ++ " list)")
+                                                                              in  if clean @lhs.options
+                                                                                  then SimpleExpr ("(map " ++ (cataname @lhs.prefix t') ++ " list)")
+                                                                                  else SimpleExpr ("(Prelude.map " ++ (cataname @lhs.prefix t') ++ " list)")
                                                                   _        -> arg
                                                          lhs = Fun (cataname @lhs.prefix @nt) [arg]
-                                                         rhs = (App "Prelude.foldr" [cons,nil,rarg])
+                                                         rhs
+                                                           | clean @lhs.options = App "foldr" [cons,nil,rarg]
+                                                           | otherwise          = App "Prelude.foldr" [cons,nil,rarg]
                                                      in  [Decl lhs rhs Set.empty Set.empty]
                                                  CommonTypes.Maybe tp ->
                                                      let just    = semname @lhs.prefix @nt (identifier "Just")
@@ -1072,9 +1076,13 @@ SEM CNonterminal
                                                                               in App (cataname @lhs.prefix t') [arg]
                                                                   _        -> arg
                                                          lhs a = Fun (cataname @lhs.prefix @nt) [a]
-                                                     in  [Decl (lhs (App "Prelude.Just" [arg]))     (App just [rarg])    Set.empty Set.empty
-                                                         ,Decl (lhs (SimpleExpr "Prelude.Nothing")) (SimpleExpr nothing) Set.empty Set.empty
-                                                         ]
+                                                     in  if clean @lhs.options
+                                                         then [Decl (lhs (App "Just" [arg]))     (App just [rarg])    Set.empty Set.empty
+                                                              ,Decl (lhs (SimpleExpr "Nothing")) (SimpleExpr nothing) Set.empty Set.empty
+                                                              ]
+                                                         else [Decl (lhs (App "Prelude.Just" [arg]))     (App just [rarg])    Set.empty Set.empty
+                                                              ,Decl (lhs (SimpleExpr "Prelude.Nothing")) (SimpleExpr nothing) Set.empty Set.empty
+                                                              ]
                                                  CommonTypes.Either tp1 tp2 ->
                                                      let left  = semname @lhs.prefix @nt (identifier "Left")
                                                          right = semname @lhs.prefix @nt (identifier "Right" )
@@ -1088,19 +1096,27 @@ SEM CNonterminal
                                                                               in App (cataname @lhs.prefix t') [arg]
                                                                   _        -> arg
                                                          lhs a = Fun (cataname @lhs.prefix @nt) [a]
-                                                     in  [Decl (lhs (App "Prelude.Left"  [arg]))     (App left  [rarg0])    Set.empty Set.empty
-                                                         ,Decl (lhs (App "Prelude.Right" [arg]))     (App right [rarg1])    Set.empty Set.empty
-                                                         ]
+                                                     in  if clean @lhs.options
+                                                         then [Decl (lhs (App "Left"  [arg]))     (App left  [rarg0])    Set.empty Set.empty
+                                                              ,Decl (lhs (App "Right" [arg]))     (App right [rarg1])    Set.empty Set.empty
+                                                              ]
+                                                         else [Decl (lhs (App "Prelude.Left"  [arg]))     (App left  [rarg0])    Set.empty Set.empty
+                                                              ,Decl (lhs (App "Prelude.Right" [arg]))     (App right [rarg1])    Set.empty Set.empty
+                                                              ]
                                                  CommonTypes.Map _ tp ->
                                                    let entry = SimpleExpr (semname @lhs.prefix @nt (identifier "Entry"))
                                                        nil   = SimpleExpr (semname @lhs.prefix @nt (identifier "Nil"))
                                                        arg   = SimpleExpr "m"
                                                        rarg  = case tp of
                                                                  NT t _ _ -> let t' = maybe t id (deforestedNt t)
-                                                                             in App "Data.Map.map" [SimpleExpr $ cataname @lhs.prefix t', arg]
+                                                                             in  if clean @lhs.options
+                                                                                 then App "'Data.Map'.map" [SimpleExpr $ cataname @lhs.prefix t', arg]
+                                                                                 else App "Data.Map.map" [SimpleExpr $ cataname @lhs.prefix t', arg]
                                                                  _        -> arg
                                                        lhs   = Fun (cataname @lhs.prefix @nt) [arg]
-                                                       rhs   = App "Data.Map.foldrWithKey" [entry,nil,rarg]
+                                                       rhs
+                                                         | clean @lhs.options   = App "'Data.Map'.foldrWithKey" [entry,nil,rarg]
+                                                         | otherwise            = App "Data.Map.foldrWithKey" [entry,nil,rarg]
                                                    in [Decl lhs rhs Set.empty Set.empty]
                                                  CommonTypes.IntMap tp ->
                                                    let entry = SimpleExpr (semname @lhs.prefix @nt (identifier "Entry"))
