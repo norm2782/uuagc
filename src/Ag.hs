@@ -374,16 +374,20 @@ compile flags input output
                                                  ]
                                       else empty]
                          | otherwise
-                            = vlist [ vlist ( if (ocaml flags' || clean flags')
-                                              then []
-                                              else [ pp optionsLine
-                                                   , pp pragmaBlocksTxt
-                                                   , pp $ take 70 ("-- UUAGC " ++ drop 50 banner ++ " (" ++ input) ++ ")"
-                                                   , pp $ if isNothing $ Pass1.moduleDecl_Syn_AG output1
-                                                          then moduleHeader flags' mainName Nothing
-                                                          else mkModuleHeader (Pass1.moduleDecl_Syn_AG output1) mainName "" "" False
-                                                   ]
-                                            )
+                            = vlist [ if ocaml flags'
+                                      then empty
+                                      else if clean flags'
+                                           then pp $ if isNothing $ Pass1.moduleDecl_Syn_AG output1
+                                                     then Pass4d.cleanIclModuleHeader flags' mainName
+                                                     else Pass4d.mkIclModuleHeader (Pass1.moduleDecl_Syn_AG output1) mainName "" "" False
+                                           else vlist
+                                                  [ pp optionsLine
+                                                  , pp pragmaBlocksTxt
+                                                  , pp $ take 70 ("-- UUAGC " ++ drop 50 banner ++ " (" ++ input) ++ ")"
+                                                  , pp $ if isNothing $ Pass1.moduleDecl_Syn_AG output1
+                                                         then moduleHeader flags' mainName Nothing
+                                                         else mkModuleHeader (Pass1.moduleDecl_Syn_AG output1) mainName "" "" False
+                                                  ]
                                     , pp importBlocksTxt
                                     , dataBlocksDoc
                                     , mainBlocksDoc
